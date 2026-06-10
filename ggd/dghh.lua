@@ -1,6 +1,6 @@
 --[[
     SWILL Delta TP System - Professional Russian Edition
-    Toggle button: ON/OFF | Player list with distance & HP | Clean design
+    Fixed toggle button | Easy drag | Working ON/OFF
 ]]
 
 local player = game.Players.LocalPlayer
@@ -42,7 +42,7 @@ task.spawn(function()
             lastPos = humanoidRootPart.Position
         end
     end
-end)
+end))
 
 -- Get player info with distance and HP
 local function getPlayerInfo(targetPlayer)
@@ -80,14 +80,14 @@ local function teleportToPlayer(targetPlayer)
     return true, "Телепорт к " .. targetPlayer.Name
 end
 
--- Draggable toggle button (ON/OFF)
+-- Draggable toggle button (ON/OFF) - IMPROVED DRAG
 local toggleGui = Instance.new("ScreenGui")
 toggleGui.Name = "DeltaTPToggle"
 toggleGui.Parent = player:WaitForChild("PlayerGui")
 toggleGui.ResetOnSpawn = false
 
 local toggleBtn = Instance.new("ImageButton")
-toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+toggleBtn.Size = UDim2.new(0, 48, 0, 48)
 toggleBtn.Position = UDim2.new(0.85, 0, 0.85, 0)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 toggleBtn.BorderSizePixel = 1
@@ -100,33 +100,39 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(1, 0)
 toggleCorner.Parent = toggleBtn
 
--- Drag logic
+-- Improved drag logic
 local dragActive = false
-local dragStart
 local dragStartPos
+local dragStartMousePos
+local dragConnection = nil
+local dragEndConnection = nil
 
-toggleBtn.InputBegan:Connect(function(input)
+local function startDrag(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragActive = true
-        dragStart = input.Position
         dragStartPos = toggleBtn.Position
+        dragStartMousePos = input.Position
     end
-end)
+end
 
-toggleBtn.InputChanged:Connect(function(input)
+local function updateDrag(input)
     if dragActive and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
+        local delta = input.Position - dragStartMousePos
         local newX = dragStartPos.X.Scale + (delta.X / toggleGui.AbsoluteSize.X)
         local newY = dragStartPos.Y.Scale + (delta.Y / toggleGui.AbsoluteSize.Y)
         toggleBtn.Position = UDim2.new(math.clamp(newX, 0, 0.92), 0, math.clamp(newY, 0, 0.88), 0)
     end
-end)
+end
 
-toggleBtn.InputEnded:Connect(function(input)
+local function endDrag(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragActive = false
     end
-end)
+end
+
+toggleBtn.InputBegan:Connect(startDrag)
+toggleBtn.InputChanged:Connect(updateDrag)
+toggleBtn.InputEnded:Connect(endDrag)
 
 -- Main panel (hidden by default)
 local mainGui = Instance.new("ScreenGui")
@@ -248,7 +254,6 @@ playerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 playerLayout.Parent = playerContainer
 
 local function updatePlayerList()
-    -- Clear old buttons
     for _, child in ipairs(playerContainer:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
@@ -266,6 +271,7 @@ local function updatePlayerList()
         emptyLabel.TextSize = 11
         emptyLabel.Font = Enum.Font.Gotham
         emptyLabel.Parent = playerContainer
+        playerContainer.Size = UDim2.new(1, 0, 0, 44)
         return
     end
     
@@ -276,7 +282,6 @@ local function updatePlayerList()
         btn.BorderSizePixel = 1
         btn.BorderColor3 = Color3.fromRGB(46, 46, 51)
         
-        -- HP bar
         local hpPercent = (data.hp / data.maxHp) * 100
         local hpColor = hpPercent > 60 and Color3.fromRGB(50, 150, 50) or (hpPercent > 30 and Color3.fromRGB(200, 150, 50) or Color3.fromRGB(200, 50, 50))
         
@@ -292,7 +297,6 @@ local function updatePlayerList()
         btnCorner.CornerRadius = UDim.new(0, 5)
         btnCorner.Parent = btn
         
-        -- HP bar visual
         local hpBar = Instance.new("Frame")
         hpBar.Size = UDim2.new(hpPercent / 100, 0, 0, 2)
         hpBar.Position = UDim2.new(0, 0, 1, -2)
@@ -317,9 +321,8 @@ local function updatePlayerList()
         btn.Parent = playerContainer
     end
     
-    -- Update container height
-    local count = playerContainer:GetChildren()
-    playerContainer.Size = UDim2.new(1, 0, 0, #count * 52)
+    local count = #players
+    playerContainer.Size = UDim2.new(1, 0, 0, count * 52)
 end
 
 refreshBtn.MouseButton1Click:Connect(function()
@@ -329,7 +332,6 @@ refreshBtn.MouseButton1Click:Connect(function()
     refreshBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 end)
 
--- Status label
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, 0, 0, 24)
 statusLabel.Position = UDim2.new(0, 0, 1, -28)
@@ -340,7 +342,7 @@ statusLabel.TextSize = 10
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.Parent = frame
 
--- Update player list every 3 seconds
+-- Auto update every 3 seconds
 task.spawn(function()
     while task.wait(3) do
         if mainGui.Enabled then
@@ -349,22 +351,42 @@ task.spawn(function()
     end
 end)
 
--- Toggle logic (ON/OFF)
+-- Toggle logic (ON/OFF) - FIXED
 local isPanelVisible = false
-toggleBtn.MouseButton1Click:Connect(function()
-    if dragActive then return end
+
+local function toggleSystem()
     isPanelVisible = not isPanelVisible
     mainGui.Enabled = isPanelVisible
     if isPanelVisible then
-        toggleBtn.ImageColor3 = Color3.fromRGB(100, 180, 100)
+        toggleBtn.ImageColor3 = Color3.fromRGB(100, 200, 100)
         updatePlayerList()
     else
         toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
     end
+end
+
+toggleBtn.MouseButton1Click:Connect(function()
+    if dragActive then
+        dragActive = false
+        return
+    end
+    toggleSystem()
 end)
 
 -- Console commands
 local commands = {
+    on = function()
+        if not isPanelVisible then
+            toggleSystem()
+        end
+        return "Система включена"
+    end,
+    off = function()
+        if isPanelVisible then
+            toggleSystem()
+        end
+        return "Система выключена"
+    end,
     tp = function(args)
         if #args < 1 then return "Использование: /tp <ник>" end
         local targetName = table.concat(args, " ")
@@ -388,21 +410,8 @@ local commands = {
         end
         return "Онлайн: " .. table.concat(result, ", ")
     end,
-    on = function()
-        mainGui.Enabled = true
-        isPanelVisible = true
-        toggleBtn.ImageColor3 = Color3.fromRGB(100, 180, 100)
-        updatePlayerList()
-        return "Система включена"
-    end,
-    off = function()
-        mainGui.Enabled = false
-        isPanelVisible = false
-        toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
-        return "Система выключена"
-    end,
     help = function()
-        return "Команды: /tp <ник>, /players, /on, /off"
+        return "Команды: /on, /off, /tp <ник>, /players"
     end
 }
 
@@ -424,12 +433,12 @@ player.Chatted:Connect(function(msg)
 end)
 
 _G.DeltaTP = {
-    version = "4.0",
-    on = function() commands.on() end,
-    off = function() commands.off() end,
+    version = "4.1",
+    on = function() if not isPanelVisible then toggleSystem() end end,
+    off = function() if isPanelVisible then toggleSystem() end end,
     tp = function(name) return commands.tp({name}) end,
     getPlayers = getOnlinePlayersWithInfo
 }
 
-print("[SWILL] Delta TP Professional - Russian Edition")
-print("Кнопка ON/OFF | Список игроков с дистанцией и HP | Защита от анти-тп")
+print("[SWILL] Delta TP Professional - Исправленная версия")
+print("Кружок легко переносится | ON/OFF работает корректно")
