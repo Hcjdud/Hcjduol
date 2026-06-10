@@ -1,6 +1,6 @@
 --[[
-    SWILL Delta TP System - Optimized Mobile Version
-    Toggle button, improved anti-teleport, compact design
+    SWILL Delta TP System - Professional Edition
+    Draggable toggle button, gray/black theme, compact console
 ]]
 
 local player = game.Players.LocalPlayer
@@ -10,7 +10,7 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 -- Улучшенная защита от анти-тп
 local function teleport(position)
     for i = 1, 3 do
-        local success, err = pcall(function()
+        pcall(function()
             humanoidRootPart.CFrame = CFrame.new(position)
             wait(0.03)
             humanoidRootPart.Velocity = Vector3.new(0,0,0)
@@ -26,18 +26,10 @@ local function teleport(position)
     end
 end
 
--- Защита от отката (если игра телепортирует обратно)
-game:GetService("RunService").Stepped:Connect(function()
-    if humanoidRootPart and humanoidRootPart.Parent then
-        humanoidRootPart:SetNetworkOwner(player)
-    end
-end)
-
--- Дополнительная защита: отслеживание принудительных телепортов сервером
+-- Защита от отката
 local lastPosition = humanoidRootPart.Position
-local antiRollback = true
 game:GetService("RunService").Heartbeat:Connect(function()
-    if antiRollback and humanoidRootPart then
+    if humanoidRootPart then
         local currentPos = humanoidRootPart.Position
         if (currentPos - lastPosition).Magnitude > 50 then
             wait(0.1)
@@ -59,16 +51,15 @@ local function teleportToPlayer(targetPlayerName)
     end
     
     if not targetPlayer then
-        return "Игрок не найден. Онлайн: " .. table.concat(getOnlinePlayers(), ", ")
+        return "Player not found. Online: " .. table.concat(getOnlinePlayers(), ", ")
     end
     
     if not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        return "У игрока нет персонажа"
+        return "Target has no character"
     end
     
-    local targetPos = targetPlayer.Character.HumanoidRootPart.Position
-    teleport(targetPos)
-    return "Телепорт к " .. targetPlayer.Name
+    teleport(targetPlayer.Character.HumanoidRootPart.Position)
+    return "Teleported to " .. targetPlayer.Name
 end
 
 local function getOnlinePlayers()
@@ -79,29 +70,56 @@ local function getOnlinePlayers()
     return names
 end
 
--- Создание кнопки-кружка для открытия/закрытия панели
+-- Перетаскиваемая кнопка-кружок
 local toggleGui = Instance.new("ScreenGui")
 toggleGui.Name = "DeltaToggleButton"
 toggleGui.Parent = player:WaitForChild("PlayerGui")
 toggleGui.ResetOnSpawn = false
 
 local toggleButton = Instance.new("ImageButton")
-toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Size = UDim2.new(0, 48, 0, 48)
 toggleButton.Position = UDim2.new(0.85, 0, 0.85, 0)
-toggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 toggleButton.BackgroundTransparency = 0
-toggleButton.BorderSizePixel = 0
-toggleButton.Image = "rbxassetid://2669901589" -- Белый круг
+toggleButton.BorderSizePixel = 1
+toggleButton.BorderColor3 = Color3.fromRGB(70, 70, 70)
+toggleButton.Image = "rbxassetid://2669901589"
+toggleButton.ImageColor3 = Color3.fromRGB(200, 200, 200)
 toggleButton.Parent = toggleGui
 
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(1, 0)
 toggleCorner.Parent = toggleButton
 
-local shadow = Instance.new("UIShadow")
-shadow.Parent = toggleButton
+-- Перетаскивание кнопки
+local dragging = false
+local dragStartPos
+local dragStartMousePos
 
--- Основная панель (изначально скрыта)
+toggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStartPos = toggleButton.Position
+        dragStartMousePos = input.Position
+    end
+end)
+
+toggleButton.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStartMousePos
+        local newX = dragStartPos.X.Scale + (delta.X / toggleGui.AbsoluteSize.X)
+        local newY = dragStartPos.Y.Scale + (delta.Y / toggleGui.AbsoluteSize.Y)
+        toggleButton.Position = UDim2.new(math.clamp(newX, 0, 0.9), 0, math.clamp(newY, 0, 0.85), 0)
+    end
+end)
+
+toggleButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Основная панель (профессиональная серая тема)
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DeltaTPPanel"
 screenGui.Parent = player:WaitForChild("PlayerGui")
@@ -109,102 +127,104 @@ screenGui.ResetOnSpawn = false
 screenGui.Enabled = false
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 420)
-frame.Position = UDim2.new(0.5, -160, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-frame.BackgroundTransparency = 0.05
+frame.Size = UDim2.new(0, 340, 0, 400)
+frame.Position = UDim2.new(0.5, -170, 0.25, 0)
+frame.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+frame.BackgroundTransparency = 0
 frame.BorderSizePixel = 1
-frame.BorderColor3 = Color3.fromRGB(45, 45, 45)
+frame.BorderColor3 = Color3.fromRGB(50, 50, 55)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = frame
+local shadow = Instance.new("UICorner")
+shadow.CornerRadius = UDim.new(0, 10)
+shadow.Parent = frame
 
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 35)
-titleBar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+titleBar.Size = UDim2.new(1, 0, 0, 36)
+titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = frame
 
 local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 8)
+titleCorner.CornerRadius = UDim.new(0, 10)
 titleCorner.Parent = titleBar
 
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -40, 1, 0)
-titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.Size = UDim2.new(1, -42, 1, 0)
+titleText.Position = UDim2.new(0, 12, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "Delta Teleport"
-titleText.TextColor3 = Color3.fromRGB(230, 230, 230)
+titleText.Text = "DELTA TELEPORT"
+titleText.TextColor3 = Color3.fromRGB(210, 210, 215)
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 14
+titleText.TextSize = 13
 titleText.Parent = titleBar
 
 local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 35, 1, 0)
-closeButton.Position = UDim2.new(1, -35, 0, 0)
-closeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+closeButton.Size = UDim2.new(0, 38, 1, 0)
+closeButton.Position = UDim2.new(1, -38, 0, 0)
+closeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 closeButton.BackgroundTransparency = 0
 closeButton.Text = "□"
-closeButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+closeButton.TextColor3 = Color3.fromRGB(190, 190, 195)
 closeButton.TextSize = 18
-closeButton.Font = Enum.Font.GothamBold
+closeButton.Font = Enum.Font.Gotham
 closeButton.Parent = titleBar
+
 local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeButton
 
 closeButton.MouseButton1Click:Connect(function()
     screenGui.Enabled = false
+    toggleButton.ImageColor3 = Color3.fromRGB(200, 200, 200)
 end)
 
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, 0, 1, -35)
-scrollFrame.Position = UDim2.new(0, 0, 0, 35)
+scrollFrame.Size = UDim2.new(1, 0, 1, -36)
+scrollFrame.Position = UDim2.new(0, 0, 0, 36)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.BorderSizePixel = 0
 scrollFrame.ScrollBarThickness = 3
-scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 60)
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(55, 55, 60)
 scrollFrame.Parent = frame
 
 local scrollList = Instance.new("UIListLayout")
-scrollList.Padding = UDim.new(0, 6)
+scrollList.Padding = UDim.new(0, 8)
 scrollList.SortOrder = Enum.SortOrder.LayoutOrder
 scrollList.Parent = scrollFrame
 
 local padding = Instance.new("UIPadding")
-padding.PaddingLeft = UDim.new(0, 8)
-padding.PaddingRight = UDim.new(0, 8)
-padding.PaddingTop = UDim.new(0, 8)
-padding.PaddingBottom = UDim.new(0, 8)
+padding.PaddingLeft = UDim.new(0, 12)
+padding.PaddingRight = UDim.new(0, 12)
+padding.PaddingTop = UDim.new(0, 12)
+padding.PaddingBottom = UDim.new(0, 12)
 padding.Parent = scrollFrame
 
 local function createSection(title)
-    local sectionLabel = Instance.new("TextLabel")
-    sectionLabel.Size = UDim2.new(1, 0, 0, 22)
-    sectionLabel.BackgroundTransparency = 1
-    sectionLabel.Text = title
-    sectionLabel.TextColor3 = Color3.fromRGB(170, 170, 170)
-    sectionLabel.TextSize = 11
-    sectionLabel.Font = Enum.Font.GothamBold
-    sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-    sectionLabel.Parent = scrollFrame
-    return sectionLabel
+    local section = Instance.new("TextLabel")
+    section.Size = UDim2.new(1, 0, 0, 24)
+    section.BackgroundTransparency = 1
+    section.Text = "▸ " .. title
+    section.TextColor3 = Color3.fromRGB(155, 155, 165)
+    section.TextSize = 11
+    section.Font = Enum.Font.GothamBold
+    section.TextXAlignment = Enum.TextXAlignment.Left
+    section.Parent = scrollFrame
+    return section
 end
 
-local function createButton(text, color)
+local function createButton(text)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 45)
-    btn.BackgroundColor3 = color or Color3.fromRGB(35, 35, 35)
+    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
     btn.BorderSizePixel = 1
-    btn.BorderColor3 = Color3.fromRGB(52, 52, 52)
+    btn.BorderColor3 = Color3.fromRGB(48, 48, 53)
     btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(230, 230, 230)
-    btn.TextSize = 13
+    btn.TextColor3 = Color3.fromRGB(205, 205, 210)
+    btn.TextSize = 12
     btn.Font = Enum.Font.Gotham
     btn.Parent = scrollFrame
     local btnCorner = Instance.new("UICorner")
@@ -215,14 +235,14 @@ end
 
 local function createInputBox(placeholder)
     local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, 0, 0, 45)
-    box.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+    box.Size = UDim2.new(1, 0, 0, 42)
+    box.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
     box.BorderSizePixel = 1
-    box.BorderColor3 = Color3.fromRGB(50, 50, 50)
+    box.BorderColor3 = Color3.fromRGB(46, 46, 51)
     box.PlaceholderText = placeholder
     box.Text = ""
-    box.TextColor3 = Color3.fromRGB(230, 230, 230)
-    box.TextSize = 13
+    box.TextColor3 = Color3.fromRGB(210, 210, 215)
+    box.TextSize = 12
     box.Font = Enum.Font.Gotham
     box.Parent = scrollFrame
     local boxCorner = Instance.new("UICorner")
@@ -231,55 +251,48 @@ local function createInputBox(placeholder)
     return box
 end
 
-createSection("> ТЕЛЕПОРТ К ИГРОКУ")
+createSection("PLAYER TP")
 
-local playerInput = createInputBox("Введите ник игрока")
-playerInput.Text = ""
-
-local tpPlayerBtn = createButton("ТЕЛЕПОРТ К ИГРОКУ", Color3.fromRGB(45, 45, 60))
-tpPlayerBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
-tpPlayerBtn.TextSize = 14
+local playerInput = createInputBox("Enter player name")
+local tpPlayerBtn = createButton("TELEPORT TO PLAYER")
+tpPlayerBtn.TextColor3 = Color3.fromRGB(200, 210, 230)
 
 tpPlayerBtn.MouseButton1Click:Connect(function()
-    local targetName = playerInput.Text
-    if targetName == "" then
-        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(75, 45, 45)
+    local name = playerInput.Text
+    if name == "" then
+        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(55, 40, 40)
         wait(0.2)
-        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
         return
     end
-    local result = teleportToPlayer(targetName)
+    local result = teleportToPlayer(name)
     print("[DeltaTP] " .. result)
-    if result:match("не найден") then
-        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(85, 40, 40)
+    if result:match("not found") then
+        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(65, 40, 40)
         wait(0.3)
-        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
     else
-        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(40, 75, 40)
+        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 55, 35)
         wait(0.2)
-        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        tpPlayerBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
     end
     playerInput.Text = ""
 end)
 
-local playersListBtn = createButton("ПОКАЗАТЬ ОНЛАЙН ИГРОКОВ", Color3.fromRGB(35, 35, 35))
-playersListBtn.MouseButton1Click:Connect(function()
+local playersBtn = createButton("SHOW ONLINE PLAYERS")
+playersBtn.MouseButton1Click:Connect(function()
     local players = getOnlinePlayers()
-    local msg = "Онлайн (" .. #players .. "): " .. table.concat(players, ", ")
-    print("[DeltaTP] " .. msg)
-    playersListBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    print("[DeltaTP] Online (" .. #players .. "): " .. table.concat(players, ", "))
+    playersBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     wait(0.1)
-    playersListBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    playersBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
 end)
 
-createSection("> ТЕЛЕПОРТ ПО КООРДИНАТАМ")
+createSection("COORDINATE TP")
 
-local coordInput = createInputBox("X, Y, Z  пример: 0, 5, 0")
-coordInput.Text = ""
-
-local tpCoordBtn = createButton("ТЕЛЕПОРТ ПО КООРДИНАТАМ", Color3.fromRGB(45, 60, 45))
-tpCoordBtn.TextColor3 = Color3.fromRGB(200, 255, 200)
-tpCoordBtn.TextSize = 14
+local coordInput = createInputBox("X, Y, Z  (example: 0, 5, 0)")
+local tpCoordBtn = createButton("TELEPORT TO COORDINATES")
+tpCoordBtn.TextColor3 = Color3.fromRGB(200, 220, 200)
 
 tpCoordBtn.MouseButton1Click:Connect(function()
     local coords = coordInput.Text
@@ -289,84 +302,73 @@ tpCoordBtn.MouseButton1Click:Connect(function()
     end
     if #parts >= 3 then
         teleport(Vector3.new(parts[1], parts[2], parts[3]))
-        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(40, 85, 40)
+        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
         wait(0.2)
-        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(45, 60, 45)
+        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
     else
-        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(75, 45, 45)
+        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
         wait(0.25)
-        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(45, 60, 45)
+        tpCoordBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
     end
     coordInput.Text = ""
 end)
 
-createSection("> ИНФОРМАЦИЯ")
+createSection("INFO")
 
-local getPosBtn = createButton("ТЕКУЩАЯ ПОЗИЦИЯ", Color3.fromRGB(35, 35, 35))
-getPosBtn.MouseButton1Click:Connect(function()
+local posBtn = createButton("CURRENT POSITION")
+posBtn.MouseButton1Click:Connect(function()
     local pos = humanoidRootPart.Position
     print(string.format("[DeltaTP] X: %.1f, Y: %.1f, Z: %.1f", pos.X, pos.Y, pos.Z))
-    getPosBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    posBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     wait(0.1)
-    getPosBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    posBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
 end)
 
-local helpBtn = createButton("КОМАНДЫ КОНСОЛИ", Color3.fromRGB(35, 35, 35))
+local helpBtn = createButton("CONSOLE COMMANDS")
 helpBtn.MouseButton1Click:Connect(function()
-    print("[DeltaTP] Команды (в чат с /): /to <ник>, /tp X Y Z, /players, /pos, /panel, /close")
-    helpBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    print("[DeltaTP] Commands (in chat with /): /to <name>, /tp X Y Z, /players, /pos, /panel, /close")
+    helpBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     wait(0.1)
-    helpBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    helpBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 37)
 end)
 
--- Логика кнопки-кружка
+-- Логика переключения панели
 local panelVisible = false
 toggleButton.MouseButton1Click:Connect(function()
     panelVisible = not panelVisible
     screenGui.Enabled = panelVisible
-    if panelVisible then
-        toggleButton.ImageColor3 = Color3.fromRGB(200, 200, 200)
-    else
-        toggleButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    end
+    toggleButton.ImageColor3 = panelVisible and Color3.fromRGB(140, 140, 150) or Color3.fromRGB(200, 200, 200)
 end)
 
-local consoleCommands = {
-    to = function(args)
-        if #args < 1 then return "Использование: /to <ник>" end
-        return teleportToPlayer(table.concat(args, " "))
-    end,
-    tp = function(args)
-        if #args >= 3 then
-            local x, y, z = tonumber(args[1]), tonumber(args[2]), tonumber(args[3])
-            if x and y and z then
-                teleport(Vector3.new(x, y, z))
-                return "Телепорт на " .. x .. ", " .. y .. ", " .. z
-            end
+-- Консольные команды (компактные)
+local cmds = {
+    to = function(a) return #a < 1 and "Usage: /to <name>" or teleportToPlayer(table.concat(a, " ")) end,
+    tp = function(a)
+        if #a >= 3 then
+            local x, y, z = tonumber(a[1]), tonumber(a[2]), tonumber(a[3])
+            if x and y and z then teleport(Vector3.new(x, y, z)) return "TP -> " .. x .. ", " .. y .. ", " .. z end
         end
-        return "Использование: /tp X Y Z"
+        return "Usage: /tp X Y Z"
     end,
-    players = function() local o = getOnlinePlayers() return "Онлайн (" .. #o .. "): " .. table.concat(o, ", ") end,
-    pos = function() local p = humanoidRootPart.Position return string.format("X: %.1f, Y: %.1f, Z: %.1f", p.X, p.Y, p.Z) end,
-    help = function() return "Команды: /to <ник>, /tp X Y Z, /players, /pos, /panel, /close" end,
-    panel = function() screenGui.Enabled = true; panelVisible = true; return "Панель показана" end,
-    close = function() screenGui.Enabled = false; panelVisible = false; return "Панель скрыта" end
+    players = function() local o = getOnlinePlayers() return "Online (" .. #o .. "): " .. table.concat(o, ", ") end,
+    pos = function() local p = humanoidRootPart.Position return string.format("X: %.1f Y: %.1f Z: %.1f", p.X, p.Y, p.Z) end,
+    panel = function() screenGui.Enabled = true; panelVisible = true; toggleButton.ImageColor3 = Color3.fromRGB(140, 140, 150); return "Panel shown" end,
+    close = function() screenGui.Enabled = false; panelVisible = false; toggleButton.ImageColor3 = Color3.fromRGB(200, 200, 200); return "Panel hidden" end,
+    help = function() return "Commands: /to, /tp, /players, /pos, /panel, /close" end
 }
 
 game:GetService("Players").LocalPlayer.Chatted:Connect(function(msg)
     if msg:sub(1,1) == "/" then
-        local parts = {}
-        for part in msg:sub(2):gmatch("%S+") do table.insert(parts, part) end
-        if #parts > 0 and consoleCommands[parts[1]:lower()] then
-            local result = consoleCommands[parts[1]:lower()]({table.unpack(parts, 2)})
-            warn("[DeltaTP] " .. result)
+        local p = {}
+        for part in msg:sub(2):gmatch("%S+") do table.insert(p, part) end
+        if #p > 0 and cmds[p[1]:lower()] then
+            warn("[DeltaTP] " .. cmds[p[1]:lower()]({table.unpack(p, 2)}))
             return
         end
     end
 end)
 
-_G.DeltaTP = { teleport = teleport, toPlayer = teleportToPlayer, getPlayers = getOnlinePlayers }
+_G.DeltaTP = { tp = teleport, to = teleportToPlayer, list = getOnlinePlayers }
 
-print("[SWILL] Delta TP v3 загружен")
-print("Белая кнопка-кружок для открытия панели")
-print("Улучшенная защита от анти-тп и отката")
+print("[SWILL] Delta TP Professional Loaded")
+print("Draggable gray circle button | Clean gray interface | Anti-TP protection")
