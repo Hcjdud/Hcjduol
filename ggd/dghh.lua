@@ -1,6 +1,6 @@
 --[[
     SWILL Delta TP System - Professional Russian Edition
-    Auto-join (ВХ) with toggle | Transparent player list | Console commands
+    Transparent player list with distance & HP | Console TP commands only
 ]]
 
 local player = game.Players.LocalPlayer
@@ -11,10 +11,6 @@ end
 
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
--- Auto-Join (ВХ) variables
-local autoJoinEnabled = false
-local autoJoinTarget = nil
 
 -- Anti-TP protection
 local function teleport(position)
@@ -89,22 +85,7 @@ local function teleportToPlayer(targetPlayer)
     return true, "Телепорт к " .. targetPlayer.Name
 end
 
--- Auto-Join logic
-task.spawn(function()
-    while task.wait(0.5) do
-        if autoJoinEnabled then
-            local players = getOnlinePlayersWithInfo()
-            if #players > 0 then
-                local target = players[1].player
-                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    teleport(target.Character.HumanoidRootPart.Position)
-                end
-            end
-        end
-    end
-end)
-
--- Create main GUI (transparent player list)
+-- Create main GUI
 local mainGui = Instance.new("ScreenGui")
 mainGui.Name = "DeltaTPPanel"
 mainGui.ResetOnSpawn = false
@@ -152,7 +133,6 @@ titleText.Font = Enum.Font.GothamBold
 titleText.TextSize = 13
 titleText.Parent = titleBar
 
--- Close button
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 40, 1, 0)
 closeBtn.Position = UDim2.new(1, -40, 0, 0)
@@ -220,7 +200,7 @@ local refreshCorner = Instance.new("UICorner")
 refreshCorner.CornerRadius = UDim.new(0, 5)
 refreshCorner.Parent = refreshBtn
 
--- Player Container (transparent buttons)
+-- Player Container
 local playerContainer = Instance.new("Frame")
 playerContainer.Size = UDim2.new(1, 0, 0, 0)
 playerContainer.BackgroundTransparency = 1
@@ -241,40 +221,6 @@ statusLabel.TextColor3 = Color3.fromRGB(130, 130, 140)
 statusLabel.TextSize = 10
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.Parent = frame
-
--- ВХ Toggle Button (on the panel)
-local vhToggleBtn = Instance.new("TextButton")
-vhToggleBtn.Size = UDim2.new(0.48, 0, 0, 36)
-vhToggleBtn.Position = UDim2.new(0.01, 0, 1, -42)
-vhToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-vhToggleBtn.BorderSizePixel = 1
-vhToggleBtn.BorderColor3 = Color3.fromRGB(60, 60, 70)
-vhToggleBtn.Text = "ВХ: ВЫКЛ"
-vhToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-vhToggleBtn.TextSize = 12
-vhToggleBtn.Font = Enum.Font.GothamBold
-vhToggleBtn.Parent = frame
-
-local vhCorner = Instance.new("UICorner")
-vhCorner.CornerRadius = UDim.new(0, 6)
-vhCorner.Parent = vhToggleBtn
-
--- Update ВХ button appearance
-local function updateVHToggle()
-    if autoJoinEnabled then
-        vhToggleBtn.Text = "ВХ: ВКЛ"
-        vhToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 90, 50)
-    else
-        vhToggleBtn.Text = "ВХ: ВЫКЛ"
-        vhToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    end
-end
-
-vhToggleBtn.MouseButton1Click:Connect(function()
-    autoJoinEnabled = not autoJoinEnabled
-    updateVHToggle()
-    print("[DeltaTP] ВХ " .. (autoJoinEnabled and "ВКЛЮЧЕН" or "ВЫКЛЮЧЕН"))
-end)
 
 local function updatePlayerList()
     for _, child in ipairs(playerContainer:GetChildren()) do
@@ -299,7 +245,6 @@ local function updatePlayerList()
     end
     
     for _, data in ipairs(players) do
-        -- Transparent button
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, 0, 0, 52)
         btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
@@ -322,7 +267,6 @@ local function updatePlayerList()
         btnCorner.CornerRadius = UDim.new(0, 6)
         btnCorner.Parent = btn
         
-        -- HP Bar
         local hpBar = Instance.new("Frame")
         hpBar.Size = UDim2.new(hpPercent / 100, 0, 0, 3)
         hpBar.Position = UDim2.new(0, 0, 1, -3)
@@ -360,7 +304,6 @@ end)
 
 -- Initial player list update
 updatePlayerList()
-updateVHToggle()
 
 -- Auto update every 3 seconds
 task.spawn(function()
@@ -371,7 +314,7 @@ task.spawn(function()
     end
 end)
 
--- Console commands (only TP and toggle)
+-- Console commands (only TP)
 local commands = {
     tp = function(args)
         if #args < 1 then return "Использование: /tp <ник>" end
@@ -387,23 +330,8 @@ local commands = {
         local success, msg = teleportToPlayer(target)
         return msg
     end,
-    vh_on = function()
-        autoJoinEnabled = true
-        updateVHToggle()
-        return "ВХ включен"
-    end,
-    vh_off = function()
-        autoJoinEnabled = false
-        updateVHToggle()
-        return "ВХ выключен"
-    end,
-    vh = function()
-        autoJoinEnabled = not autoJoinEnabled
-        updateVHToggle()
-        return "ВХ " .. (autoJoinEnabled and "включен" or "выключен")
-    end,
     help = function()
-        return "Команды: /tp <ник>, /vh, /vh_on, /vh_off"
+        return "Команды: /tp <ник>"
     end
 }
 
@@ -425,17 +353,14 @@ player.Chatted:Connect(function(msg)
 end)
 
 _G.DeltaTP = {
-    version = "6.0",
-    tp = function(name) return commands.tp({name}) end,
-    vh_on = function() commands.vh_on() end,
-    vh_off = function() commands.vh_off() end,
-    vh_toggle = function() commands.vh() end
+    version = "7.0",
+    tp = function(name) return commands.tp({name}) end
 }
 
 print("========================================")
-print("[SWILL] Delta TP - ВХ ВЕРСИЯ ЗАГРУЖЕНА!")
+print("[SWILL] Delta TP - ЗАГРУЖЕН!")
 print("========================================")
-print("▶ Панель с прозрачными кнопками")
-print("▶ Кнопка ВХ на панели (ВКЛ/ВЫКЛ)")
-print("▶ Команды: /tp ник, /vh, /vh_on, /vh_off")
+print("▶ Прозрачные кнопки с дистанцией и HP")
+print("▶ Нажмите на игрока для телепорта")
+print("▶ Команда: /tp <ник>")
 print("========================================")
