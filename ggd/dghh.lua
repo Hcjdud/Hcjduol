@@ -1,6 +1,6 @@
 --[[
     SWILL Delta TP System - Professional Russian Edition
-    Transparent player list with distance & HP | Console TP commands only
+    Simple player list | Console TP command only
 ]]
 
 local player = game.Players.LocalPlayer
@@ -47,34 +47,14 @@ task.spawn(function()
     end
 end)
 
--- Get player info with distance and HP
-local function getPlayerInfo(targetPlayer)
-    if not humanoidRootPart or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        return 999, 0, 100
-    end
-    local distance = math.floor((humanoidRootPart.Position - targetPlayer.Character.HumanoidRootPart.Position).Magnitude)
-    local humanoid = targetPlayer.Character:FindFirstChild("Humanoid")
-    local hp = humanoid and math.floor(humanoid.Health) or 0
-    local maxHp = humanoid and humanoid.MaxHealth or 100
-    return distance, hp, maxHp
-end
-
-local function getOnlinePlayersWithInfo()
-    local data = {}
+local function getOnlinePlayers()
+    local names = {}
     for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local distance, hp, maxHp = getPlayerInfo(plr)
-            table.insert(data, {
-                name = plr.Name,
-                distance = distance,
-                hp = hp,
-                maxHp = maxHp,
-                player = plr
-            })
+        if plr ~= player then
+            table.insert(names, plr.Name)
         end
     end
-    table.sort(data, function(a, b) return a.distance < b.distance end)
-    return data
+    return names
 end
 
 local function teleportToPlayer(targetPlayer)
@@ -95,9 +75,9 @@ mainGui.Parent = playerGui
 
 -- Panel Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 380, 0, 520)
-frame.Position = UDim2.new(0.5, -190, 0.15, 0)
-frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.Size = UDim2.new(0, 320, 0, 450)
+frame.Position = UDim2.new(0.5, -160, 0.15, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
 frame.BackgroundTransparency = 0.1
 frame.BorderSizePixel = 1
 frame.BorderColor3 = Color3.fromRGB(45, 45, 50)
@@ -126,11 +106,11 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -48, 1, 0)
 titleText.Position = UDim2.new(0, 12, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "DELTA TELEPORT SYSTEM"
+titleText.Text = "DELTA TELEPORT"
 titleText.TextColor3 = Color3.fromRGB(215, 215, 220)
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 13
+titleText.TextSize = 14
 titleText.Parent = titleBar
 
 local closeBtn = Instance.new("TextButton")
@@ -190,7 +170,7 @@ refreshBtn.Size = UDim2.new(1, 0, 0, 38)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 refreshBtn.BorderSizePixel = 1
 refreshBtn.BorderColor3 = Color3.fromRGB(48, 48, 53)
-refreshBtn.Text = "ОБНОВИТЬ СПИСОК"
+refreshBtn.Text = "ОБНОВИТЬ"
 refreshBtn.TextColor3 = Color3.fromRGB(210, 210, 215)
 refreshBtn.TextSize = 11
 refreshBtn.Font = Enum.Font.Gotham
@@ -211,17 +191,6 @@ playerLayout.Padding = UDim.new(0, 6)
 playerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 playerLayout.Parent = playerContainer
 
--- Status Label
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, 0, 0, 28)
-statusLabel.Position = UDim2.new(0, 0, 1, -30)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Нажмите на игрока для телепорта"
-statusLabel.TextColor3 = Color3.fromRGB(130, 130, 140)
-statusLabel.TextSize = 10
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.Parent = frame
-
 local function updatePlayerList()
     for _, child in ipairs(playerContainer:GetChildren()) do
         if child:IsA("TextButton") then
@@ -229,7 +198,12 @@ local function updatePlayerList()
         end
     end
     
-    local players = getOnlinePlayersWithInfo()
+    local players = {}
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= player then
+            table.insert(players, plr)
+        end
+    end
     
     if #players == 0 then
         local emptyLabel = Instance.new("TextLabel")
@@ -244,37 +218,24 @@ local function updatePlayerList()
         return
     end
     
-    for _, data in ipairs(players) do
+    for _, plr in ipairs(players) do
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 52)
+        btn.Size = UDim2.new(1, 0, 0, 48)
         btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
         btn.BackgroundTransparency = 0.3
         btn.BorderSizePixel = 1
         btn.BorderColor3 = Color3.fromRGB(55, 55, 60)
-        
-        local hpPercent = (data.hp / data.maxHp) * 100
-        local hpColor = hpPercent > 60 and Color3.fromRGB(50, 150, 50) or (hpPercent > 30 and Color3.fromRGB(200, 150, 50) or Color3.fromRGB(200, 50, 50))
-        
-        local text = string.format("%s     📍 %dм     ❤️ %d/%d", data.name, data.distance, data.hp, data.maxHp)
-        btn.Text = text
+        btn.Text = plr.Name
         btn.TextColor3 = Color3.fromRGB(220, 220, 225)
-        btn.TextSize = 12
+        btn.TextSize = 13
         btn.Font = Enum.Font.Gotham
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.TextTruncate = Enum.TextTruncate.AtEnd
+        btn.TextXAlignment = Enum.TextXAlignment.Center
         
         local btnCorner = Instance.new("UICorner")
         btnCorner.CornerRadius = UDim.new(0, 6)
         btnCorner.Parent = btn
         
-        local hpBar = Instance.new("Frame")
-        hpBar.Size = UDim2.new(hpPercent / 100, 0, 0, 3)
-        hpBar.Position = UDim2.new(0, 0, 1, -3)
-        hpBar.BackgroundColor3 = hpColor
-        hpBar.BorderSizePixel = 0
-        hpBar.Parent = btn
-        
-        local targetPlayer = data.player
+        local targetPlayer = plr
         btn.MouseButton1Click:Connect(function()
             local success, msg = teleportToPlayer(targetPlayer)
             print("[DeltaTP] " .. msg)
@@ -292,7 +253,7 @@ local function updatePlayerList()
         btn.Parent = playerContainer
     end
     
-    playerContainer.Size = UDim2.new(1, 0, 0, #players * 58)
+    playerContainer.Size = UDim2.new(1, 0, 0, #players * 54)
 end
 
 refreshBtn.MouseButton1Click:Connect(function()
@@ -314,7 +275,7 @@ task.spawn(function()
     end
 end)
 
--- Console commands (only TP)
+-- Console command (only TP)
 local commands = {
     tp = function(args)
         if #args < 1 then return "Использование: /tp <ник>" end
@@ -331,7 +292,7 @@ local commands = {
         return msg
     end,
     help = function()
-        return "Команды: /tp <ник>"
+        return "Команда: /tp <ник>"
     end
 }
 
@@ -353,14 +314,14 @@ player.Chatted:Connect(function(msg)
 end)
 
 _G.DeltaTP = {
-    version = "7.0",
+    version = "8.0",
     tp = function(name) return commands.tp({name}) end
 }
 
 print("========================================")
 print("[SWILL] Delta TP - ЗАГРУЖЕН!")
 print("========================================")
-print("▶ Прозрачные кнопки с дистанцией и HP")
+print("▶ Список игроков")
 print("▶ Нажмите на игрока для телепорта")
 print("▶ Команда: /tp <ник>")
 print("========================================")
