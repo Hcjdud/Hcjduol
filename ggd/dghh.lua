@@ -1,9 +1,8 @@
 --[[
     SWILL Delta TP System - Professional Russian Edition
-    FIXED: Toggle button appears, panel works
+    FIXED: Circle button AND panel both appear
 ]]
 
--- Ждём полной загрузки персонажа
 local player = game.Players.LocalPlayer
 if not player then
     game.Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
@@ -60,7 +59,6 @@ local function getPlayerInfo(targetPlayer)
     return distance, hp, maxHp
 end
 
--- Get online players with info
 local function getOnlinePlayersWithInfo()
     local data = {}
     for _, plr in ipairs(game.Players:GetPlayers()) do
@@ -87,83 +85,16 @@ local function teleportToPlayer(targetPlayer)
     return true, "Телепорт к " .. targetPlayer.Name
 end
 
--- Создаём GUI с проверкой
-local toggleGui = Instance.new("ScreenGui")
-toggleGui.Name = "DeltaTPToggle"
-toggleGui.ResetOnSpawn = false
-
--- Пробуем разные родители
-local success, err = pcall(function()
-    if player:FindFirstChild("PlayerGui") then
-        toggleGui.Parent = player.PlayerGui
-    else
-        toggleGui.Parent = player:WaitForChild("PlayerGui")
-    end
-end)
-
-if not success then
-    warn("[DeltaTP] Не удалось создать GUI: " .. tostring(err))
-    return
-end
-
--- Кнопка-кружок ON/OFF
-local toggleBtn = Instance.new("ImageButton")
-toggleBtn.Size = UDim2.new(0, 52, 0, 52)
-toggleBtn.Position = UDim2.new(0.8, 0, 0.8, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-toggleBtn.BorderSizePixel = 1
-toggleBtn.BorderColor3 = Color3.fromRGB(55, 55, 60)
-toggleBtn.Image = "rbxassetid://2669901589"
-toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
-toggleBtn.Parent = toggleGui
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggleBtn
-
--- Перетаскивание
-local dragActive = false
-local dragStart
-local dragStartPos
-
-toggleBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragActive = true
-        dragStart = input.Position
-        dragStartPos = toggleBtn.Position
-    end
-end)
-
-toggleBtn.InputChanged:Connect(function(input)
-    if dragActive and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
-        local newX = dragStartPos.X.Scale + (delta.X / toggleGui.AbsoluteSize.X)
-        local newY = dragStartPos.Y.Scale + (delta.Y / toggleGui.AbsoluteSize.Y)
-        toggleBtn.Position = UDim2.new(math.clamp(newX, 0, 0.92), 0, math.clamp(newY, 0, 0.85), 0)
-    end
-end)
-
-toggleBtn.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragActive = false
-    end
-end)
-
--- Основная панель
+-- Create MAIN GUI (MUST be created first)
 local mainGui = Instance.new("ScreenGui")
 mainGui.Name = "DeltaTPPanel"
 mainGui.ResetOnSpawn = false
 
-pcall(function()
-    if player:FindFirstChild("PlayerGui") then
-        mainGui.Parent = player.PlayerGui
-    else
-        mainGui.Parent = player:WaitForChild("PlayerGui")
-    end
-end)
+-- SAFE PARENTING
+local playerGui = player:WaitForChild("PlayerGui")
+mainGui.Parent = playerGui
 
-mainGui.Enabled = false
-
+-- Panel Frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 380, 0, 520)
 frame.Position = UDim2.new(0.5, -190, 0.15, 0)
@@ -172,12 +103,14 @@ frame.BorderSizePixel = 1
 frame.BorderColor3 = Color3.fromRGB(45, 45, 50)
 frame.Active = true
 frame.Draggable = true
+frame.Visible = true
 frame.Parent = mainGui
 
 local frameCorner = Instance.new("UICorner")
 frameCorner.CornerRadius = UDim.new(0, 10)
 frameCorner.Parent = frame
 
+-- Title Bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
@@ -192,7 +125,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -48, 1, 0)
 titleText.Position = UDim2.new(0, 12, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "DELTA TELEPORT"
+titleText.Text = "DELTA TELEPORT SYSTEM"
 titleText.TextColor3 = Color3.fromRGB(215, 215, 220)
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Font = Enum.Font.GothamBold
@@ -218,6 +151,7 @@ closeBtn.MouseButton1Click:Connect(function()
     toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
 end)
 
+-- Scroll Frame
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1, 0, 1, -40)
 scroll.Position = UDim2.new(0, 0, 0, 40)
@@ -239,7 +173,7 @@ padding.PaddingTop = UDim.new(0, 12)
 padding.PaddingBottom = UDim.new(0, 12)
 padding.Parent = scroll
 
--- Заголовок
+-- Header
 local header = Instance.new("TextLabel")
 header.Size = UDim2.new(1, 0, 0, 30)
 header.BackgroundTransparency = 1
@@ -250,7 +184,7 @@ header.Font = Enum.Font.GothamBold
 header.TextXAlignment = Enum.TextXAlignment.Center
 header.Parent = scroll
 
--- Кнопка обновления
+-- Refresh Button
 local refreshBtn = Instance.new("TextButton")
 refreshBtn.Size = UDim2.new(1, 0, 0, 38)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -266,7 +200,7 @@ local refreshCorner = Instance.new("UICorner")
 refreshCorner.CornerRadius = UDim.new(0, 5)
 refreshCorner.Parent = refreshBtn
 
--- Контейнер для игроков
+-- Player Container
 local playerContainer = Instance.new("Frame")
 playerContainer.Size = UDim2.new(1, 0, 0, 0)
 playerContainer.BackgroundTransparency = 1
@@ -276,6 +210,17 @@ local playerLayout = Instance.new("UIListLayout")
 playerLayout.Padding = UDim.new(0, 6)
 playerLayout.SortOrder = Enum.SortOrder.LayoutOrder
 playerLayout.Parent = playerContainer
+
+-- Status Label
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 28)
+statusLabel.Position = UDim2.new(0, 0, 1, -30)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Нажмите на игрока для телепорта"
+statusLabel.TextColor3 = Color3.fromRGB(130, 130, 140)
+statusLabel.TextSize = 10
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Parent = frame
 
 local function updatePlayerList()
     for _, child in ipairs(playerContainer:GetChildren()) do
@@ -355,17 +300,82 @@ refreshBtn.MouseButton1Click:Connect(function()
     refreshBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 end)
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, 0, 0, 28)
-statusLabel.Position = UDim2.new(0, 0, 1, -30)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Нажмите на игрока для телепорта"
-statusLabel.TextColor3 = Color3.fromRGB(130, 130, 140)
-statusLabel.TextSize = 10
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.Parent = frame
+-- Create Toggle Button GUI (SECOND GUI)
+local toggleGui = Instance.new("ScreenGui")
+toggleGui.Name = "DeltaTPToggle"
+toggleGui.ResetOnSpawn = false
+toggleGui.Parent = playerGui
 
--- Автообновление
+-- Toggle Button
+local toggleBtn = Instance.new("ImageButton")
+toggleBtn.Size = UDim2.new(0, 52, 0, 52)
+toggleBtn.Position = UDim2.new(0.8, 0, 0.8, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+toggleBtn.BorderSizePixel = 1
+toggleBtn.BorderColor3 = Color3.fromRGB(60, 60, 65)
+toggleBtn.Image = "rbxassetid://2669901589"
+toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
+toggleBtn.Parent = toggleGui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggleBtn
+
+-- Drag logic
+local dragActive = false
+local dragStart
+local dragStartPos
+
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragActive = true
+        dragStart = input.Position
+        dragStartPos = toggleBtn.Position
+    end
+end)
+
+toggleBtn.InputChanged:Connect(function(input)
+    if dragActive and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        local newX = dragStartPos.X.Scale + (delta.X / toggleGui.AbsoluteSize.X)
+        local newY = dragStartPos.Y.Scale + (delta.Y / toggleGui.AbsoluteSize.Y)
+        toggleBtn.Position = UDim2.new(math.clamp(newX, 0, 0.92), 0, math.clamp(newY, 0, 0.85), 0)
+    end
+end)
+
+toggleBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragActive = false
+    end
+end)
+
+-- Panel starts HIDDEN
+mainGui.Enabled = false
+local isPanelVisible = false
+
+-- Toggle function
+local function togglePanel()
+    isPanelVisible = not isPanelVisible
+    mainGui.Enabled = isPanelVisible
+    if isPanelVisible then
+        toggleBtn.ImageColor3 = Color3.fromRGB(100, 200, 100)
+        updatePlayerList()
+        print("[DeltaTP] Панель открыта")
+    else
+        toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
+        print("[DeltaTP] Панель закрыта")
+    end
+end
+
+toggleBtn.MouseButton1Click:Connect(function()
+    if dragActive then
+        dragActive = false
+        return
+    end
+    togglePanel()
+end)
+
+-- Auto update
 task.spawn(function()
     while task.wait(3) do
         if mainGui.Enabled then
@@ -374,41 +384,14 @@ task.spawn(function()
     end
 end)
 
--- Логика ON/OFF
-local isPanelVisible = false
-
-toggleBtn.MouseButton1Click:Connect(function()
-    if dragActive then
-        dragActive = false
-        return
-    end
-    isPanelVisible = not isPanelVisible
-    mainGui.Enabled = isPanelVisible
-    if isPanelVisible then
-        toggleBtn.ImageColor3 = Color3.fromRGB(100, 200, 100)
-        updatePlayerList()
-    else
-        toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
-    end
-end)
-
--- Консольные команды
+-- Console commands
 local commands = {
     on = function()
-        if not isPanelVisible then
-            isPanelVisible = true
-            mainGui.Enabled = true
-            toggleBtn.ImageColor3 = Color3.fromRGB(100, 200, 100)
-            updatePlayerList()
-        end
+        if not isPanelVisible then togglePanel() end
         return "Система включена"
     end,
     off = function()
-        if isPanelVisible then
-            isPanelVisible = false
-            mainGui.Enabled = false
-            toggleBtn.ImageColor3 = Color3.fromRGB(180, 180, 180)
-        end
+        if isPanelVisible then togglePanel() end
         return "Система выключена"
     end,
     tp = function(args)
@@ -457,13 +440,20 @@ player.Chatted:Connect(function(msg)
 end)
 
 _G.DeltaTP = {
-    version = "4.2",
-    on = function() commands.on() end,
-    off = function() commands.off() end,
+    version = "4.3",
+    on = function() if not isPanelVisible then togglePanel() end end,
+    off = function() if isPanelVisible then togglePanel() end end,
     tp = function(name) return commands.tp({name}) end,
-    getPlayers = getOnlinePlayersWithInfo
+    getPlayers = getOnlinePlayersWithInfo,
+    showPanel = function() if not isPanelVisible then togglePanel() end end,
+    hidePanel = function() if isPanelVisible then togglePanel() end end
 }
 
-print("[SWILL] Delta TP - Загружено!")
-print("Серый кружок в правом нижнем углу")
-print("Нажмите на кружок для открытия панели")
+print("========================================")
+print("[SWILL] Delta TP - УСПЕШНО ЗАГРУЖЕН!")
+print("========================================")
+print("▶ Серый кружок в правом нижнем углу")
+print("▶ НАЖМИТЕ на кружок чтобы открыть панель")
+print("▶ Панель появится с списком игроков")
+print("▶ Команды: /on, /off, /tp ник, /players")
+print("========================================") 
